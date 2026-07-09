@@ -185,18 +185,20 @@ def push_to_push_plus(exec_results, summary, config: PushConfig):
     # 判断是否需要pushplus推送
     if config.push_plus_token and config.push_plus_token != '' and config.push_plus_token != 'NO':
         html = f'<div>{summary}</div>'
+        title_msg = ""
         if len(exec_results) >= config.push_plus_max:
             html += '<div>账号数量过多，详细情况请前往github actions中查看</div>'
         else:
             html += '<ul>'
             for exec_result in exec_results:
                 success = exec_result['success']
+                title_msg = exec_result["msg"]  # 记录每条消息，最终保留最后一条
                 if success is not None and success is True:
                     html += f'<li><span>账号：{exec_result["user"]}</span>刷步数成功，接口返回：{exec_result["msg"]}</li>'
                 else:
                     html += f'<li><span>账号：{exec_result["user"]}</span>刷步数失败，失败原因：{exec_result["msg"]}</li>'
             html += '</ul>'
-        push_plus(config.push_plus_token, f"小米运动通知", html)
+        push_plus(config.push_plus_token, title_msg, html)
     else:
         print("未配置 PUSH_PLUS_TOKEN 跳过PUSHPLUS推送")
 
