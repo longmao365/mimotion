@@ -180,23 +180,35 @@ def not_in_push_time_range(config: PushConfig) -> bool:
     return True
 
 
+import html as html_module  # 避免与局部变量 html 冲突
+
 def push_to_push_plus(exec_results, summary, config: PushConfig):
     """推送到PushPlus"""
-    # 判断是否需要pushplus推送
     if config.push_plus_token and config.push_plus_token != '' and config.push_plus_token != 'NO':
-        html = f'<div>{summary}</div>'
+        body = f'<div>{summary}</div>'
         if len(exec_results) >= config.push_plus_max:
-            html += '<div>账号数量过多，详细情况请前往github actions中查看</div>'
+            body += '<div>账号数量过多，详细情况请前往github actions中查看</div>'
         else:
-            html += '<ul>'
+            body += '<ul>'
             for exec_result in exec_results:
-                success = exec_result['success']
-                if success is not None and success is True:
-                    html += f'<li><span>账号：{exec_result["user"]}</span>刷步数成功，接口返回：{exec_result["msg"]}</li>'
+                success = exec_result.get('success')
+                user = exec_result.get('user', '未知')
+                msg = exec_result.get('msg', '无信息')
+                if success is True:
+                    body += f'<li><span>账号：{user}</span>刷步数成功，接口返回：{msg}</li>'
                 else:
-                    html += f'<li><span>账号：{exec_result["user"]}</span>刷步数失败，失败原因：{exec_result["msg"]}</li>'
-            html += '</ul>'
-        push_plus(config.push_plus_token, f"{format_now()} 刷步数通知", html)
+                    body += f'<li><span>账号：{user}</span>刷步数失败，失败原因：{msg}</li>'
+            body += '</ul>'
+
+        # ✅ 安全获取最后一条消息（在 for 循环外部）
+        last_msg = html_module.escape(str(exec_results[-1].get('msg', '无信息'))) if exec_results else '未知'
+
+        # 如果需要在标题中体现最后一条消息，可以这样用：
+        title = f"{last_msg}"
+        # 如果不需要在标题中体现，直接用原来的标题即可：
+        # title = f"{format_now()} 刷步数通知"
+
+        push_plus(config.push_plus_token, title, body)
     else:
         print("未配置 PUSH_PLUS_TOKEN 跳过PUSHPLUS推送")
 
